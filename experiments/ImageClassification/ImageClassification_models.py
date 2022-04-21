@@ -1,5 +1,9 @@
 import tensorflow as tf
 from tensorflow.keras import Model, layers
+
+import sys
+sys.path.append("/Users/pchaddha/ParmBucket/OOCS")
+
 from Compute_Kernels import *
 num_classes = 100
 

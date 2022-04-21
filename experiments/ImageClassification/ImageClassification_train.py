@@ -21,9 +21,9 @@ lr_drop = args.lr_drop
 epochs = args.epochs
 batch_size = args.batch_size
 
-train = h5py.File('../data/imagenetSubset/train.h5', 'r')
-test = h5py.File('../data/imagenetSubset/test.h5', 'r')
-val = h5py.File('../data/imagenetSubset/val.h5', 'r')
+train = h5py.File('./experiments/data/imagenetSubset/train.h5', 'r')
+test = h5py.File('./experiments/data/imagenetSubset/test.h5', 'r')
+val = h5py.File('./experiments/data/imagenetSubset/val.h5', 'r')
 
 x_train = train.get('images')
 y_train = train.get('labels_encoded')
