@@ -103,7 +103,7 @@ class SM_CNN(Model):
 
 class OOCS(Model):
 
-    def __init__(self):
+    def __init__(self, num_neurons: int = 100):
         super(OOCS, self).__init__()
         self.conv_On_filters = On_Off_Center_filters(radius=1.0, gamma=1. / 2., in_channels=1, out_channels=1, off=False)
         self.conv_Off_filters = On_Off_Center_filters(radius=1.0, gamma=1. / 2., in_channels=1, out_channels=1, off=True)
@@ -116,8 +116,7 @@ class OOCS(Model):
         self.maxpool2 = layers.MaxPool2D(2, strides=2)
         self.flatten = layers.Flatten()
         # Fully connected layer.
-        self.fc1 = layers.Dense(100, activation=tf.nn.relu)
-
+        self.fc1 = layers.Dense(num_neurons, activation=tf.nn.relu)
         # Output layer, class prediction.
         self.out = layers.Dense(num_classes)
 

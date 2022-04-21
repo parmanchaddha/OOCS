@@ -5,7 +5,7 @@ from sklearn import model_selection
 import numpy as np
 import argparse
 from Robustness_MNIST_models import Basenet, SM_CNN, OOCS
-import os
+import json
 import pickle
 
 parser = argparse.ArgumentParser()
@@ -14,6 +14,10 @@ parser.add_argument("--batch_size", default=64, type=int)
 parser.add_argument("--epochs", default=1, type=int)
 parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--lr_drop", default=5, type=float)
+parser.add_argument("--save_name", default="test", type=str)
+parser.add_argument("--num_neurons", default="test", type=int)
+
+
 args = parser.parse_args()
 
 # Training parameters.
@@ -22,7 +26,8 @@ epochs = args.epochs
 batch_size = args.batch_size
 lr_drop = args.lr_drop
 lr_decay = 1e-6
-
+save_name= args.save_name
+num_neurons = args.num_neurons
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
@@ -48,7 +53,7 @@ if args.model == "Basenet":
 elif args.model == "SM":
     conv_net = SM_CNN()
 elif args.model == "OOCS":
-    conv_net = OOCS()
+    conv_net = OOCS(num_neurons=num_neurons)
 else:
     raise ValueError("Unknown model type '{}'".format(args.model))
 
@@ -98,8 +103,6 @@ def run_optimization(x, y):
 
 losses = []
 accs = []
-losses = []
-accs = []
 val_losses = []
 val_accs = []
 
@@ -125,32 +128,39 @@ for epoch in range(epochs):
     print("epoch: %i, step:%i, loss: %f, accuracy: %f" % (epoch, step, loss, acc))
 
     print("validation epoch: %i, loss: %f, accuracy: %f" % (epoch, val_loss, val_acc))
-    losses.append(loss)
-    accs.append(acc)
-    val_losses.append(val_loss)
-    val_accs.append(val_acc)
+    losses.append(float(loss))
+    accs.append(float(acc))
+    val_losses.append(float(val_loss))
+    val_accs.append(float(val_acc))
 
 results = {}
 pred = conv_net(x_test)
-loss = cross_entropy_loss(pred, y_test)
-acc = accuracy(pred, y_test)
-results['test acc on original'] = acc
-results['test loss on original'] = loss
-print("test on original data, loss: %f, accuracy: %f" % (loss, acc))
+loss_orig = float(cross_entropy_loss(pred, y_test))
+acc_orig = float(accuracy(pred, y_test))
+results['test acc on original'] = acc_orig
+results['test loss on original'] = loss_orig
+print("test on original data, loss: %f, accuracy: %f" % (loss_orig, acc_orig))
 
 pred = conv_net(x_test_dark)
-loss = cross_entropy_loss(pred, y_test)
-acc = accuracy(pred, y_test)
-results['test acc on inverted'] = acc
-results['test loss on inverted'] = loss
-print("test on inverted data, loss: %f, accuracy: %f" % (loss, acc))
+loss_inv = float(cross_entropy_loss(pred, y_test))
+acc_inv = float(accuracy(pred, y_test))
+results['test acc on inverted'] = acc_inv
+results['test loss on inverted'] = loss_inv
+print("test on inverted data, loss: %f, accuracy: %f" % (loss_inv, acc_inv))
 
 # Log result in file
-base_path = "../results/Robustness_MNIST"
-os.makedirs(base_path, exist_ok=True)
-with open("{}/{}_test_results.pkl".format(base_path, args.model), "wb") as f:
-    pickle.dump(results, f)
+base_path = "./experiments/results/"
 
+all_results = {
+    "losses": losses,
+    "accs": accs,
+    "val_losses": val_losses,
+    "val_accs": val_accs,
+    "test_acc_original": acc_orig,
+    "test_loss_original": loss_orig,
+    "test_acc_inverted": acc_inv,
+    "test_loss_inverted": loss_inv,
+}
 
-
-
+with open(f"{base_path}{save_name}.json", 'w') as f:
+    json.dump(all_results, f, indent=4)
