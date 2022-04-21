@@ -4,11 +4,13 @@
 <p align="center">
   <img src="fig/OOCS.png" alt="drawing" width="500"/>
 </p>
+
 ## Requirements
 
 **Packages**
 - Python 3.6 or newer
 - TensorFlow 2.0 or newer
+- Sympy
 
 Tested with python3.8.5/python3.6 and TensorFlow 2.2 on Ubuntu 18.04
 

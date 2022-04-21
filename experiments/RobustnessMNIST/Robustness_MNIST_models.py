@@ -1,5 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import Model, layers
+import sys
+sys.path.append("/Users/pchaddha/ParmBucket/OOCS")
 from Compute_Kernels import *
 
 num_classes = 10
@@ -123,8 +125,8 @@ class OOCS(Model):
     def call(self, x, is_training=False):
         x = tf.reshape(x, [-1, 28, 28, 1])
 
-        sm_on = self.on_center_modulation_small(x, kernel_size=3, in_channels=1, out_channels=1)
-        sm_off = self.off_center_modulation_small(x, kernel_size=3, in_channels=1, out_channels=1)
+        sm_on = self.on_center_modulation_small(input=x, kernel_size=3, in_channels=1, out_channels=1)
+        sm_off = self.off_center_modulation_small(input=x, kernel_size=3, in_channels=1, out_channels=1)
         x = sm_on + sm_off
 
         x = self.conv11(x)
@@ -142,7 +144,7 @@ class OOCS(Model):
             x = tf.nn.softmax(x)
         return x
 
-    def on_center_modulation_small(self, kernel_size, input, in_channels, out_channels):
+    def on_center_modulation_small(self, input, kernel_size, in_channels, out_channels):
         filter_weights = tf.Variable(tf.cast(tf.reshape(self.conv_On_filters, (kernel_size, kernel_size, in_channels, out_channels)),dtype=tf.float32), trainable=False, dtype=tf.float32)
         output = tf.nn.conv2d(input, filters=filter_weights, strides=1, padding='SAME')
 
