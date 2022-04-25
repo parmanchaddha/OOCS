@@ -103,20 +103,37 @@ class SM_CNN(Model):
 
 class OOCS(Model):
 
-    def __init__(self, num_neurons: int = 100):
+    def __init__(self, num_neurons: int = 100, num_dense_layers: int = 1, oocs_kernel_size: int = 3, verbose: bool = False):
         super(OOCS, self).__init__()
-        self.conv_On_filters = On_Off_Center_filters(radius=1.0, gamma=1. / 2., in_channels=1, out_channels=1, off=False)
-        self.conv_Off_filters = On_Off_Center_filters(radius=1.0, gamma=1. / 2., in_channels=1, out_channels=1, off=True)
+        gamma = 1. / 2.
+        radius = gamma*(oocs_kernel_size + 1)/2.
 
-        self.conv11 = layers.Conv2D(32, kernel_size=3, strides=1, padding='same', activation=tf.nn.relu)
-        self.conv12 = layers.Conv2D(32, kernel_size=3, strides=1, padding='same', activation=tf.nn.relu)
+        self.conv_On_filters = On_Off_Center_filters(radius=radius, gamma=1. / 2., in_channels=1, out_channels=1, off=False)
+        self.conv_Off_filters = On_Off_Center_filters(radius=radius, gamma=1. / 2., in_channels=1, out_channels=1, off=True)
+
+        if verbose:
+            print("Here are the On-Filters:")
+            print(self.conv_On_filters)
+            print()
+            print("Here are the Off-Filters:")
+            print(self.conv_Off_filters)
+        
+        self.conv11 = layers.Conv2D(32, kernel_size=oocs_kernel_size, strides=1, padding='same', activation=tf.nn.relu)
+        self.conv12 = layers.Conv2D(32, kernel_size=oocs_kernel_size, strides=1, padding='same', activation=tf.nn.relu)
         self.maxpool1 = layers.MaxPool2D(2, strides=2)
-        self.conv21 = layers.Conv2D(64, kernel_size=3, strides=1, padding='same', activation=tf.nn.relu)
-        self.conv22 = layers.Conv2D(64, kernel_size=3, strides=1, padding='same', activation=tf.nn.relu)
+        self.conv21 = layers.Conv2D(64, kernel_size=oocs_kernel_size, strides=1, padding='same', activation=tf.nn.relu)
+        self.conv22 = layers.Conv2D(64, kernel_size=oocs_kernel_size, strides=1, padding='same', activation=tf.nn.relu)
         self.maxpool2 = layers.MaxPool2D(2, strides=2)
         self.flatten = layers.Flatten()
+
+        self.oocs_kernel_size = oocs_kernel_size
+
         # Fully connected layer.
-        self.fc1 = layers.Dense(num_neurons, activation=tf.nn.relu)
+        self.num_dense_layers: int = num_dense_layers
+        self.fc = []
+        for i in range(self.num_dense_layers):
+            self.fc.append(layers.Dense(num_neurons, activation=tf.nn.relu))
+
         # Output layer, class prediction.
         self.out = layers.Dense(num_classes)
 
@@ -124,8 +141,8 @@ class OOCS(Model):
     def call(self, x, is_training=False):
         x = tf.reshape(x, [-1, 28, 28, 1])
 
-        sm_on = self.on_center_modulation_small(input=x, kernel_size=3, in_channels=1, out_channels=1)
-        sm_off = self.off_center_modulation_small(input=x, kernel_size=3, in_channels=1, out_channels=1)
+        sm_on = self.on_center_modulation_small(input=x, kernel_size=self.oocs_kernel_size, in_channels=1, out_channels=1)
+        sm_off = self.off_center_modulation_small(input=x, kernel_size=self.oocs_kernel_size, in_channels=1, out_channels=1)
         x = sm_on + sm_off
 
         x = self.conv11(x)
@@ -135,7 +152,9 @@ class OOCS(Model):
         x = self.conv22(x)
         x = self.maxpool2(x)
         x = self.flatten(x)
-        x = self.fc1(x)
+
+        for i in range(self.num_dense_layers):
+            x = self.fc[i](x)
 
         if not is_training:
             # tf cross entropy expect logits without softmax, so only

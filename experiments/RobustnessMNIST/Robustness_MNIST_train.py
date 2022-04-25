@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 from Robustness_MNIST_models import Basenet, SM_CNN, OOCS
 import json
-import pickle
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", default="Basenet")
@@ -15,7 +15,10 @@ parser.add_argument("--epochs", default=1, type=int)
 parser.add_argument("--lr", default=0.01, type=float)
 parser.add_argument("--lr_drop", default=5, type=float)
 parser.add_argument("--save_name", default="test", type=str)
-parser.add_argument("--num_neurons", default="test", type=int)
+parser.add_argument("--num_neurons", default=100, type=int)
+parser.add_argument("--num_layers", default=1, type=int)
+parser.add_argument("--kernel_size", default=3, type=int)
+parser.add_argument("--verbose", default=False, type=bool)
 
 
 args = parser.parse_args()
@@ -28,6 +31,9 @@ lr_drop = args.lr_drop
 lr_decay = 1e-6
 save_name= args.save_name
 num_neurons = args.num_neurons
+num_layers = args.num_layers
+kernel_size = args.kernel_size
+is_verbose = args.verbose
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
@@ -53,7 +59,12 @@ if args.model == "Basenet":
 elif args.model == "SM":
     conv_net = SM_CNN()
 elif args.model == "OOCS":
-    conv_net = OOCS(num_neurons=num_neurons)
+    conv_net = OOCS(
+        num_neurons=num_neurons,
+        num_dense_layers=num_layers,
+        oocs_kernel_size=kernel_size,
+        verbose=is_verbose
+    )
 else:
     raise ValueError("Unknown model type '{}'".format(args.model))
 
@@ -162,5 +173,12 @@ all_results = {
     "test_loss_inverted": loss_inv,
 }
 
-with open(f"{base_path}{save_name}.json", 'w') as f:
+trial_number = 1
+file_save_name = f"{base_path}_{save_name}_k{kernel_size}_l{num_layers}_n{num_neurons}_t{trial_number}.json"
+while Path(file_save_name).exists():
+    trial_number += 1
+    file_save_name = f"{base_path}_{save_name}_k{kernel_size}_l{num_layers}_n{num_neurons}_t{trial_number}.json"
+
+print(file_save_name)
+with open(file_save_name, 'w') as f:
     json.dump(all_results, f, indent=4)
